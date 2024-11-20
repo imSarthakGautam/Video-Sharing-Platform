@@ -12,6 +12,7 @@ Context : Files are stored temporarily in server,
 
 import fs from'fs'
 import { v2 as cloudinary } from 'cloudinary';
+import { ApiError } from './ApiError.js';
 
 
 // Configuration
@@ -48,6 +49,17 @@ const uploadOnCloudinary = async (localfilePath) => {
     }
 }
 
-export {uploadOnCloudinary}
+const deleteFromCloudinary = async (publicId) => {
+    await cloudinary.uploader.destroy(publicId, (error, result) => {
+        if (error) {
+            throw new ApiError(
+                500,
+                "existing file could not be deleted from cloudinary"
+            );
+        } 
+    });
+};
+
+export {uploadOnCloudinary, deleteFromCloudinary}
 
     
