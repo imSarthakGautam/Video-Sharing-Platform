@@ -4,8 +4,9 @@ import connectDB from './db/mongoose-connection.js';
 import { app } from './app.js';
 
 dotenv.config({
-    path: './env'
+    path: './.env' //specifying the path where env variables are located.
 })
+
 let port = process.env.PORT || 8000;
 
 connectDB()
@@ -17,3 +18,4 @@ connectDB()
 .catch((err)=>{
     console.log('MongoDB connection failed :', err)
 });
+

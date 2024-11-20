@@ -28,4 +28,22 @@ app.use(express.static('public'))
 // to access and set user's browser cookies from server
 app.use(cookieParser())
 
+
+
+//----ROUTES IMPORT
+import userRouter from './routes/user.routes.js'
+import videoRouter from './routes/video.routes.js'
+import playlistRouter from './routes/playlist.routes.js'
+
+//---ROUTES DECLARATION
+app.use('/api/v1/users', userRouter)
+app.use('/api/v1/videos', videoRouter)
+app.use('/api/v1/playlists', playlistRouter)
+
+app.get('/', (req,res)=>{
+    console.log('home reached')
+    res.send(200)
+})
+
+
 export {app}
