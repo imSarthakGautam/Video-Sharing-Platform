@@ -67,8 +67,8 @@ let userSchema = new Schema(
 
 //before saving perform some action like middleware
 userSchema.pre('save', async function(next){
-    //run only when password feild is referenced
 
+    //run only when password feild is referenced
     if(!this.isModified('password')) return next();
     this.password= await bcrypt.hash(this.password, 10)
     next();

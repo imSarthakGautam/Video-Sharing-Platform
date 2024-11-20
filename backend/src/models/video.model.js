@@ -10,13 +10,13 @@ let videoSchema = new Schema({
     }, 
 
     thumbnail: {
-        type: string,
+        type: String,
         required: true,
     },
 
     owner:{ 
         type: Schema.Types.ObjectId,
-        ref:User
+        ref: 'User'
     }, 
 
     title: {
