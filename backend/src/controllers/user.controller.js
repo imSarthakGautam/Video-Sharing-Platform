@@ -4,6 +4,7 @@ import { User } from '../models/user.model.js'
 import { uploadOnCloudinary, deleteFromCloudinary } from '../utils/cloudinary.js'
 import {ApiResponse} from '../utils/ApiResponse.js'
 import  jwt  from 'jsonwebtoken'
+import mongoose from 'mongoose'
 
 
 //The registerUser route handler is wrapped by asyncHandler directly when it is defined.
@@ -459,7 +460,103 @@ const getUserChannelProfile = asyncHandler ( async(req,res)=>{
    )   
 })
 
-const getWatchHistory = asyncHandler ( async(req,res)=>{})
+const getWatchHistory = asyncHandler ( async(req,res)=>{
+
+   const user = await User.aggregate([
+      {
+        $match: {
+         // _id: req.user._id [26]
+          _id: new mongoose.Types.ObjectId(req.user._id)  // Using ObjectId conversion for safety
+        }
+      },
+      // stage2: Lookup to get watch history and the video owner details
+      {
+        $lookup: {
+          from: 'videos',
+          localField: 'watchHistory',
+          foreignField: '_id',
+          as: 'watchHistory', // watchHistory will be placed in watchHistory array
+
+          //pipeline is applied to 'from' collection i.e videos
+          pipeline: [
+            {
+              $lookup: { //performs another $lookup to the users using the owner field in the videos collection.
+                from: 'users',
+                localField: 'owner',
+                foreignField: '_id',
+                as: 'owner',
+
+                pipeline: [
+                  {
+                    $project: {
+                      fullName: 1,
+                      username: 1,
+                      avatar: 1
+                    }
+                  },
+
+                  //without this owner :[{}] so extract first element from array and replace it as field.
+                  {
+                    $addFields: {
+                      owner: {
+                        $first: "$owner"  // Ensure to extract the first matching owner
+                      }
+                    }
+                  }
+                ]
+              }
+            }
+          ]
+
+        }
+      }
+    ]);
+
+   /* sample output from this pipeline
+   [
+      {
+         "_id": ObjectId("user_id"),
+         "watchHistory": 
+         [
+            {
+            "_id": ObjectId("video_id_1"),
+            "title": "Video 1",
+            "owner": {
+               "_id": ObjectId("owner_id_1"),
+               "fullName": "Owner One",
+               "username": "owner1",
+               "avatar": "owner1_avatar_url"
+               } ,
+               // other fields from the Video document
+            },
+
+            {
+            "_id": ObjectId("video_id_2"),
+            "title": "Video 2",
+            "owner": {
+               "_id": ObjectId("owner_id_2"),
+               "fullName": "Owner Two",
+               "username": "owner2",
+               "avatar": "owner2_avatar_url"
+               },
+               // other fields from the Video document
+            }
+         ]
+      }
+   ]
+   */
+    
+   return res
+    .status(200)
+    .json(
+        new ApiResponse(
+            200,
+            //extract first elemetn from pipleine
+            user[0].watchHistory,
+            "Watch history fetched successfully"
+        )
+    )
+})
 
 
  
