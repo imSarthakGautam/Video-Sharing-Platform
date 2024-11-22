@@ -125,7 +125,7 @@ const loginUser = asyncHandler ( async (req, res)=>{
    if (!user) throw new ApiError(404, 'User does not exist')
 
    //re-check logic
-   let isValidPassword = user.isPasswordCorrect(password)
+   let isValidPassword =await  user.isPasswordCorrect(password)
    if (!isValidPassword) throw new ApiError(401, 'Invalid user credentials') // only runs on if(true) i.e. invalid credentials
 
    // accesstoken and refresh token
