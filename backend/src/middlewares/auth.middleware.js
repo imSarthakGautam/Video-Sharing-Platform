@@ -26,9 +26,9 @@ export const verifyJWT = asyncHandler(async(req,res, next)=>{
 
 
     const token = req.cookies?.accessToken || req.header("Authorization")?.replace("Bearer", "")
-    console.log('Token',token)
+    //console.log('Token',token)
     
-    if (!token) throw ApiError(401, 'Unauthorized request')
+    if (!token) throw new ApiError(401, 'Unauthorized request')
 
     const decoded_token = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET)
     //decoded_token has {_id, email, fullname }

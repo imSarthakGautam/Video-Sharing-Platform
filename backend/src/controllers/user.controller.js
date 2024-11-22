@@ -165,8 +165,8 @@ const logoutUser = asyncHandler ( async(req,res)=>{
    await User.findByIdAndUpdate(
       req.user._id,
       {
-         $set : {
-            refreshToken: undefined
+         $unset : {
+            refreshToken: 1 // this removes field from the document
          }
       },
       {
@@ -341,6 +341,7 @@ const updateUserAvatar = asyncHandler ( async(req,res)=>{
         new ApiResponse(200, user, "Avatar image updated successfully")
     )
 })
+
 const updateUserCoverImage = asyncHandler ( async(req,res)=>{
    //multer middleware single upload, 
    //get file path
@@ -423,10 +424,10 @@ const getUserChannelProfile = asyncHandler ( async(req,res)=>{
       {
          $addFields : {
             subscribersCount : {
-               $size : "$subsribers"
+               $size : { $ifNull: ['$subscribers', []] }
             },
             subscribedToCount :{
-               $size :'$subscribedTo'
+               $size :{ $ifNull: ['$subscribedTo', []] }
             },
             isSubscribed : {
                $cond: {
@@ -450,6 +451,7 @@ const getUserChannelProfile = asyncHandler ( async(req,res)=>{
          }
       }
    ])
+   console.log(channel)
 
    if (!channel?.length) throw new ApiError(404, 'Channel does not exists')
 
