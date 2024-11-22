@@ -4,14 +4,26 @@ import mongooseAggregatePaginate from 'mongoose-aggregate-paginate-v2'
 let videoSchema = new Schema({
 
     videoFile: {
-        type: String, // cloudinary url
-        required: true
+        url : {
+            type : String, //cloudinary url
+            
+        },
+        publicId : {
+            type : String, //cloudinary uniqueId
+            
+        }
         
     }, 
 
     thumbnail: {
-        type: String,
-        required: true,
+        url : {
+            type : String, //cloudinary url
+            
+        },
+        publicId : {
+            type : String, //cloudinary uniqueId
+            
+        }
     },
 
     owner:{ 
@@ -51,6 +63,8 @@ let videoSchema = new Schema({
     required : true
 }
 )
+
+//powerful Mongoose plugin that extends the capabilities of MongoDB aggregation pipelines by adding pagination and sorting features.
 
 videoSchema.plugin(mongooseAggregatePaginate)
 

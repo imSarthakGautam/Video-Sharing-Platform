@@ -9,11 +9,16 @@ import {
     updateVideo,
 } from "../controllers/video.controller.js"
 
+import { upload } from "../middlewares/multer.middleware.js";
+import {verifyJWT} from '../middlewares/auth.middleware.js'
+
 
 router
     .route('/')
     .get(getAllVideos)
-    .post(publishAVideo);
+    .post(verifyJWT,
+          upload.fields([{ name: "video" }, { name: "thumbnail" }]),
+          publishAVideo);
 
 router
     .route('/:videoId')
