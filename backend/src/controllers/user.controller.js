@@ -80,6 +80,7 @@ const registerUser = asyncHandler ( async (req, res)=>{
 
 })
 
+//-----------------GENERATE ACCESS TOKEN---------
 const generateAccessAndRefreshToken = async (userId)=> {
 
    try {
@@ -106,6 +107,7 @@ const generateAccessAndRefreshToken = async (userId)=> {
    
 }
 
+//--------------- LOGIN USER ------------------
 const loginUser = asyncHandler ( async (req, res)=>{
    //1. input user details,
   
@@ -155,6 +157,7 @@ const loginUser = asyncHandler ( async (req, res)=>{
 
 })
 
+//--------------LOGOUT USER----------------
 const logoutUser = asyncHandler ( async(req,res)=>{
 
    // get User
@@ -185,7 +188,7 @@ const logoutUser = asyncHandler ( async(req,res)=>{
    //2. reset Refresh Token
 })
 
-
+// ------------------ REFRESH ACCESS TOKEN ---------
 const refreshAccessToken = asyncHandler ( async(req,res)=>{
 
    // send refresh token in cookie
@@ -230,7 +233,7 @@ const refreshAccessToken = asyncHandler ( async(req,res)=>{
 
 })
 
-
+//------------- CHANGE CURRENT PASSWORD ----------
 const changeCurrentPassword = asyncHandler ( async(req,res)=>{
 
    //loggedIn so -- from req.user, password query
@@ -254,7 +257,7 @@ const changeCurrentPassword = asyncHandler ( async(req,res)=>{
 
 })
 
-
+//------------- GET CURRENT USER ---------------
 const getCurrentUser = asyncHandler ( async(req,res)=>{
    // from req.user middleware
    return res
@@ -265,6 +268,8 @@ const getCurrentUser = asyncHandler ( async(req,res)=>{
        "User fetched successfully"
    ))
 })
+
+//----------------- UPDATE ACCOUNT DETAILS ------------
 const updateAccountDetails = asyncHandler ( async(req,res)=>{
    // from req.user --query account
    // from req.body--feilds to update
@@ -291,6 +296,8 @@ const updateAccountDetails = asyncHandler ( async(req,res)=>{
    .json(new ApiResponse(200, user, "Account details updated successfully"))
 
 })
+
+//--------------- CHANGE AVATAR -----------
 const updateUserAvatar = asyncHandler ( async(req,res)=>{
    //multer middleware single upload, 
    //get file path
@@ -355,8 +362,9 @@ const updateUserCoverImage = asyncHandler ( async(req,res)=>{
     const existingUser = await User.findById(req.user?._id)
     if (!existingUser) throw new ApiError(400, 'Error deleting image from Cloudinary')
     
-    
+    if (existingUser.coverImage?.publicId){
     await deleteFromCloudinary(existingUser.coverImage?.publicId)
+    }
 
     let user= await User.findByIdAndUpdate(
         req.user?._id,
@@ -376,7 +384,81 @@ const updateUserCoverImage = asyncHandler ( async(req,res)=>{
     )
 })
 
-const getUserChannelProfile = asyncHandler ( async(req,res)=>{})
+//-------------------- GET USER CHANNEL { fullname, username, subscibers, subscribed }------------
+const getUserChannelProfile = asyncHandler ( async(req,res)=>{
+
+   
+   let {username} = req.params // video.com/:username
+   if (!username.trim()) throw new ApiError(400, 'Not a valid user channel')
+
+   //User.find({username})
+   // see aggregation_pipleine.md for confusion.
+   let channel = await User.aggregate([ 
+      //stage1
+      { $match :{ 
+          username : username?.toLowerCase()
+         }
+      },
+      //stage2
+      {
+         $lookup : {
+            from: 'Subscription',
+            localField: '_id',
+            foreignField: 'channel',
+            as: 'subscribers'
+         }
+      },
+      // this subsribers is an array having documents of subscription Schema
+      //stage 3
+      {
+         $lookup : {
+            from: 'Subscription',
+            localField: '_id',
+            foreignField: 'subscriber',
+            as: 'subscribedTo'
+         }
+      },
+      //stage 4
+      {
+         $addFields : {
+            subscribersCount : {
+               $size : "$subsribers"
+            },
+            subscribedToCount :{
+               $size :'$subscribedTo'
+            },
+            isSubscribed : {
+               $cond: {
+                  if: {$in: [req.user?._id, '$subscribers.subscribed']},
+                  then : true,
+                  else: false
+               }
+            }  
+         }
+      },
+      //stage 5
+      {
+         $project : {
+            fullname: 1,
+            username :1,
+            subscribersCount:1,
+            subscribedToCount:1,
+            isSubscribed: 1,
+            avatar:1,
+            coverImage:1   
+         }
+      }
+   ])
+
+   if (!channel?.length) throw new ApiError(404, 'Channel does not exists')
+
+   return res
+   .status(200)
+   .json(
+      new ApiResponse(200, channel[0], 'User channel fetched successfully')
+   )   
+})
+
 const getWatchHistory = asyncHandler ( async(req,res)=>{})
 
 
