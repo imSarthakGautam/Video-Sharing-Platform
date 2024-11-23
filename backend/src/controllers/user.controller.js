@@ -481,6 +481,7 @@ const getWatchHistory = asyncHandler ( async(req,res)=>{
 
           //pipeline is applied to 'from' collection i.e videos
           pipeline: [
+            // 1st pipline stage 1
             {
               $lookup: { //performs another $lookup to the users using the owner field in the videos collection.
                 from: 'users',
@@ -489,6 +490,7 @@ const getWatchHistory = asyncHandler ( async(req,res)=>{
                 as: 'owner',
 
                 pipeline: [
+                  // 2nd pipleine stage1
                   {
                     $project: {
                       fullName: 1,
@@ -497,6 +499,7 @@ const getWatchHistory = asyncHandler ( async(req,res)=>{
                     }
                   },
 
+                  // 2nd pipleine stage2
                   //without this owner :[{}] so extract first element from array and replace it as field.
                   {
                     $addFields: {
@@ -506,12 +509,16 @@ const getWatchHistory = asyncHandler ( async(req,res)=>{
                     }
                   }
                 ]
-              }
+
+               }
+              
             }
+            //1st pipeline stage1 complete
           ]
 
         }
       }
+      //stage 2 complete
     ]);
 
    /* sample output from this pipeline

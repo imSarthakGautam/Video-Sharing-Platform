@@ -60,11 +60,12 @@ let videoSchema = new Schema({
     
 
 },{
-    required : true
+    timestamps : true
 }
 )
 
-//powerful Mongoose plugin that extends the capabilities of MongoDB aggregation pipelines by adding pagination and sorting features.
+//powerful Mongoose plugin that extends the capabilities of MongoDB aggregation pipelines
+// by adding pagination and sorting features.
 
 videoSchema.plugin(mongooseAggregatePaginate)
 
