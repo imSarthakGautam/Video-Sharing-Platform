@@ -26,7 +26,7 @@ const getAllVideos= asyncHandler(async (req,res)=>{
                     //pipleine stage 1
                     {
                         $project :{
-                            fullName: 1,
+                            fullname: 1,
                             username:1,
                             avatar:1,
                         }
