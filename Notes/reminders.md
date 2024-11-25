@@ -1,47 +1,80 @@
-- type : module
-- nodemon
-- dotenv : Import and configure this as early as possible in application so that env variables can be accessed as soon as possible.
 
-and no import, require as:
+### project structure : app.js & index.js(main)
+**App.js**
+- Express App : `const app = express()`
+- import and use middlewares
+- import routes and declare them
+- `export {app}`
 
-```js
-require("dotenv").config({ path: "./env" });
-```
+**index.js**
+- `import {app} from './app.js'`
+- dotenv.config()
+- connect DB
+- Listen on port
 
-or in scripts:
+**src**
+- controllers
+- db
+- middlewares
+- routes
+- utils
+- models
 
-````json
-{
-   "dev":"nodemon -r dotenv/config --experimental-json-modules src/ index.js"
-}
 
-wrap try-catch for every db operation
-and use async-await
+## Reminders:
 
-### DB connection alternative appraoches
-1.
-```js
-function connectDB(){
-}
-connectDB()
-````
+1. **Nodemon**  
+   - Use for auto-reloading during development.
 
-2.IIFE: Immediately Invoked Function Expression : JavaScript function that is executed as soon as it's defined.
+2. **Dotenv**  
+   - Import and configure as early as possible to ensure environment variables are accessible immediately.  
+   - Example:  
+     ```javascript
+     require("dotenv").config({ path: "./env" });
+     ```
+   - Or in Scripts itself:  
+     ```json
+     {
+       "dev": "nodemon -r dotenv/config --experimental-json-modules src/index.js"
+     }
+     ```
 
-```js
-(async () => {})();
-```
+3. **Database Operations**  
+   - Wrap all database operations in a `try-catch` block.  
+   - Use `async-await` for cleaner asynchronous code.
 
-Approach 1: Everything in index.js
+### Database Connection Approaches
 
-```js
+1. **Function-Based**  
+   ```javascript
+   function connectDB() {
+     // DB connection logic
+   }
+   connectDB();
+   ```
+
+2. **IIFE (Immediately Invoked Function Expression)**  
+executed as soon as defined-
+   ```javascript
+   (async () => {
+     try {
+       // DB connection logic
+     } catch (error) {
+       console.error("Error connecting to DB:", error);
+     }
+   })();
+   ```
+
+### Example: Complete Setup itself in `index.js`
+
+```javascript
 const app = express();
 
 (async () => {
   try {
     await mongoose.connect(`${process.env.MONGODB_URI}/${DB_NAME}`);
     app.on("error", (error) => {
-      console.log("ERR :", error);
+      console.log("Error:", error);
       throw error;
     });
 
@@ -49,106 +82,145 @@ const app = express();
       console.log("App is listening on port", process.env.PORT);
     });
   } catch (error) {
-    console.error("ERROR: ", error);
+    console.error("Error:", error);
     throw error;
   }
 })();
 ```
-
-after completing async code promises are run `.then().catch()`
-
-`express.json()`- middleware for parsing incoming json from request body, don't have to manually parse string into JavaScript Objects.
-
-Once parsed, the JSON data is conveniently accessible in the req.body object. This makes it easy to work with the data in your route handlers
-
+In this project however
 ```js
-express.urlencoded({
-    extended:true,//handle deeply nested objects in URL encoded data.
-})
-```
-in url data is sent like `name=Bob&age=25` which is converted to 
-```js
-{
-    name: 'Bob',
-    age: '25'
-}
+connectDB()
+.then(()=>{ app.listen(port)})
 ```
 
-If you want to make any feild searchable in mongodb, you make it 
-{ index : true}
+### Middleware Usage
 
-pre-post middlewares for mongoose
-creating custom methods for mongoose
+1. **Parsing JSON**  
+   ```javascript
+   app.use(express.json());
+   ```
+   - Automatically parses JSON data in request body and attaches it to `req.body`.
+   - dont have to manually parse them to Js objects
+   - Once parsed, the JSON data is conveniently accessible in the req.body object. This makes it easy to work with the data in your route handlers
+
+2. **Parsing URL-Encoded Data**  
+   ```javascript
+   app.use(
+     express.urlencoded({
+       extended: true, // Allows handling deeply nested objects
+     })
+   );
+   ```
+   in url data is sent like `name=Bob&age=25` which is converted to 
+    ```js
+    {
+        name: 'Bob',
+        age: '25'
+    }
+    ```
+
+### MongoDB Indexing for Searchability  
+- To make a field searchable in MongoDB:  
+  ```javascript
+  { index: true }
+  ```
+
+### Mongoose Middlewares and Custom Methods  
+- Use pre/post middleware for lifecycle hooks.  
+- Define custom methods for schema instances or models.
+
+### Routing Patterns
+
+1. **In the Same File**  
+   ```javascript
+   app.get('/');
+   ```
+
+2. **Separate Route Files**  
+   ```javascript
+   app.use('/api/version/baseroute', routeName);
+   ```
+
+### Router Import Styles
+
+1. **Standard Import**  
+   ```javascript
+   import express from 'express';
+   const router = express.Router();
+   ```
+   Imports the entire express module.
+   Accesses the Router function as a property of the express object using express.Router().
+    
+    useful if you also need other functionality from express, like express.json() or express.static().  
 
 
-app.get('/) when routing is done in same file
-app.use(/api/version/baseroute, routeName) when routes in different file
+2. **Destructured Import**  
+   ```javascript
+   import { Router } from 'express';
+   const router = Router();
+   ```
+   Only imports the Router function directly from the express module.
 
-```js
-import express from 'express';
-const router = express.Router();
+    This is a destructured import, extracting Router as a specific functionality from the module.
+
+    Use this when you only need Router and don’t need the rest of Express's features in this file.
+
+
+### Cookies
+
+1. **Set a Cookie**  
+   ```javascript
+   res.cookie('name', value, options);
+   ```
+
+2. **Clear a Cookie**  
+   ```javascript
+   res.clearCookie('name');
+   ```
+
+### Refresh Token Workflow  [25]
+- On access token expiry, allow the frontend to call an endpoint to send the refresh token.  
+- Match the refresh token in the database and issue a new access token.
+
+### Aggregation and ObjectId in MongoDB
+
+1. **Problem**  [26]
+   - `req.user._id` is a string, but MongoDB `_id` is an `ObjectId`.  
+   - Normal queries handle type conversion automatically, but aggregation pipelines do not.
+
+   - Aggregation pipelines require explicit type management because they don't automatically convert data types in operations like $match. Thus, when comparing values (like _id), you need to ensure they are of the same type (ObjectId), or the comparison will fail
+
+2. **Solution**  
+   ```javascript
+   _id: mongoose.Types.ObjectId(req.user._id)
+   ```
+
+### Handling Empty Arrays in Aggregations
+```javascript
+subscribersCount: { $size: { $ifNull: ['$subscribers', []] } }
 ```
-Imports the entire express module.
-Accesses the Router function as a property of the express object using express.Router().
 
- useful if you also need other functionality from express, like express.json() or express.static().
+### Mongoose Pagination  
+- **Install Plugin**  
+  ```bash
+  npm install mongoose-aggregate-paginate-v2
+  ```
+- **Usage**  
+  ```javascript
+  const mongoose = require('mongoose');
+  const mongooseAggregatePaginate = require('mongoose-aggregate-paginate-v2');
 
-```js
-import { Router } from 'express';
-const router = Router();
+  mongooseAggregatePaginate.paginate.options = {
+    // Custom options
+  };
+  mongoose.plugin(mongooseAggregatePaginate);
+  ```
 
+### Cloudinary: Deleting Videos
+Specify resource type when deleting assets.  
+```javascript
+const result = await cloudinary.uploader.destroy(publicId, {
+  resource_type: 'video',
+  type: 'upload', // or 'authenticated'
+});
 ```
-Only imports the Router function directly from the express module.
-This is a destructured import, extracting Router as a specific functionality from the module.
-Use this when you only need Router and don’t need the rest of Express's features in this file.
-
-
-whenever user wants to access a protected route
-
-
-res.cookie('name', cookie, options)
-res.clearCookie('name')
----
-refernce no 25: on expiry of access Token allow frontend to hit an endpoint that sends refresh Token and then by matching refresh token in DB, aceess Token is updated
----
-ref no : 26
-wrong way of referencing user
-`req.user._id` is being passed as a string, but MongoDB's `_id` field is usually stored as an ObjectId type
-- `_id: mongoose.Types.ObjectId(req.user._id)`
-converts the string req.user._id into an ObjectId before performing the comparison with the _id field in MongoDB.
-
-Why this Mistake Happens in Aggregation but Not Elsewhere:
-
-Normal Queries (Outside Aggregation): MongoDB's normal query operations 
-(e.g., `User.find({ _id: req.user._id })`) are more forgiving when it comes to type conversions. MongoDB automatically converts the string representation of an _id (if it’s passed as a string) to an ObjectId when performing the query.  MongoDB’s driver (e.g., Mongoose) automatically performs conversions when the types don’t match. This is built into the way Mongoose and MongoDB interact with JavaScript types due too mogoose.
-
-Aggregation pipelines require explicit type management because they don't automatically convert data types in operations like $match. Thus, when comparing values (like _id), you need to ensure they are of the same type (ObjectId), or the comparison will fail
----
-
-//condition for empty arrays:
-subscribersCount: { $size: { $ifNull: ['$subscribers', []] } },
----
-import mongooseAggregatePaginate from 'mongoose-aggregate-paginate-v2'
-```bash
-npm install mongoose-aggregate-paginate-v2
-```
-
-use:
-```js
-const mongoose = require('mongoose');
-mongooseAggregatePaginate.paginate.options = {
-    // Customize pagination options here
-};
-mongoose.plugin(mongooseAggregatePaginate);
-```
-The mongoose-aggregate-paginate-v2 package is a popular Mongoose plugin that extends the capabilities of the aggregation pipeline by adding pagination functionality.
-i.e. divide a large dataset into smaller, more manageable pages. This helps to improve user experience, performance, and reduce network traffic.   
-
-This allows you to efficiently fetch and paginate large datasets in your Node.js applications.
----
-for deleting videos of upload type it's different.
-const result = await cloudinary.uploader.destroy(publicId, { 
-            resource_type: 'video',
-            type: 'upload' // or 'authenticated', depending on your upload settings
-        });
----
